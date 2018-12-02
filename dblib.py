@@ -60,8 +60,8 @@ class Utils():
 
     @staticmethod
     def se_id_to_name(se_id):
-        for se_name, se_id in SE_ID_MAP.iteritems():
-            if se_id == se_id:
+        for se_name, map_se_id in SE_ID_MAP.iteritems():
+            if se_id == map_se_id:
                 return se_name
         raise RuntimeError("Unknwon se_id '%d'" % se_id)
 
@@ -69,6 +69,12 @@ class Utils():
     def split_full_pfn(full_pfn):
         proto, rest = full_pfn.split("://")
         hostname, pfn = rest.split("/", 1)
+        # hostname may contain a port number
+        if ":" in hostname:
+            hostname = hostname.split(":", 1)[0]
+        # pfn may contain a WS endpoint
+        if "SFN=" in pfn:
+            pfn = pfn.split("SFN=", 1)[1]
         if not hostname in SE_NAME_MAP:
             raise RuntimeError("No mapping for SE '%s' (PFN: '%s')" % (hostname, full_pfn))
         se_name = SE_NAME_MAP[hostname]
@@ -85,13 +91,17 @@ class Utils():
         return lfn
 
     @staticmethod
-    def norm_pfn(pfn):
+    def norm_pfn(pfn, se_id=None):
         pfn = pfn.replace('//', '/')
         pfn_match = Utils.PFN_REM_BASE.search(pfn)
         if not pfn_match:
             raise RuntimeError("Unable to process PFN '%s'?" % pfn)
-        return pfn_match.group(2)
-        return pfn
+        res = pfn_match.group(2)
+        if se_id == SE_ID_MAP['RAL-LCG2-T2K-tape']:
+            # RAL is special, the base path doesn't include t2k.org
+            # We have to add that bit back to our PFN path
+            res = "/t2k.org%s" % res
+        return res
 
     @staticmethod
     def norm_size(fsize):
@@ -99,6 +109,8 @@ class Utils():
 
     @staticmethod
     def norm_cksum(cksum):
+        if not cksum:
+            return None
         cksum = cksum.lower()
         return cksum.zfill(8)
 
@@ -122,7 +134,7 @@ class DB():
         self.__conn.commit()
 
     def add_pfn(self, se_id, pfn, fsize, cksum):
-        pfn = Utils.norm_pfn(pfn)
+        pfn = Utils.norm_pfn(pfn, se_id)
         fsize = Utils.norm_size(fsize)
         cksum = Utils.norm_cksum(cksum)
         cur = self.__conn.cursor()
@@ -135,7 +147,8 @@ class DB():
             for old_fsize, old_cksum in res:
               if old_fsize != fsize or old_cksum != cksum:
                 raise RuntimeError("Failed to add PFN '%s', already exists? (se_id=%d)" % (pfn, se_id))
-        cur.close()
+        finally:
+            cur.close()
 
     def rem_pfns_by_se(self, se_id):
         cur = self.__conn.cursor()
@@ -144,9 +157,8 @@ class DB():
         self.__conn.commit()
 
     def add_lfn(self, se_id, lfn, pfn):
-        cur = self.__conn.cursor()
         lfn = Utils.norm_lfn(lfn)
-        pfn = Utils.norm_pfn(pfn)
+        pfn = Utils.norm_pfn(pfn, se_id)
         cur = self.__conn.cursor()
         try:
             cur.execute("INSERT INTO lfns VALUES (?, ?, ?)", (se_id, lfn, pfn))
@@ -156,7 +168,24 @@ class DB():
               old_pfn = old_pfn[0]
               if old_pfn != pfn:
                 raise RuntimeError("Failed to add LFN '%s', already exists? (se_id=%d, pfn='%s' != '%s')" % (lfn, se_id, pfn, old_pfn))
-        cur.close()
+        finally:
+            cur.close()
+
+    def add_dfn(self, se_id, pfn, fsize, cksum):
+        pfn = Utils.norm_pfn(pfn, se_id)
+        # Normalised PFNs _are_ LFNs in DIRAC
+        fsize = Utils.norm_size(fsize)
+        cksum = Utils.norm_cksum(cksum)
+        cur = self.__conn.cursor()
+        try:
+            cur.execute("INSERT INTO dfns VALUES (?, ?, ?, ?)", (se_id, pfn, fsize, cksum))
+        except sqlite3.IntegrityError:
+            res = cur.execute("SELECT fsize, cksum FROM dfns WHERE se_id = ? AND dfn = ?", (se_id, pfn))
+            for old_fsize, old_cksum in res:
+              if old_fsize != fsize or old_cksum != cksum:
+                raise RuntimeError("Failed to add DFN '%s', already exists? (se_id=%d)" % (pfn, se_id))
+        finally:
+            cur.close()
 
     def iterpfns(self, se_id=None):
         cur = self.__conn.cursor()
@@ -166,3 +195,24 @@ class DB():
             res = cur.execute("SELECT se_id, pfn, fsize, cksum FROM pfns")
         for row in res:
             yield row
+        cur.close()
+
+    def iterlfns(self, se_id=None):
+        cur = self.__conn.cursor()
+        if se_id:
+            res = cur.execute("SELECT se_id, lfn, pfn FROM lfns WHERE se_id = ?", (se_id,))
+        else:
+            res = cur.execute("SELECT se_id, lfn, pfn FROM lfns")
+        for row in res:
+            yield row
+        cur.close()
+
+    def iterdfns(self, se_id=None):
+        cur = self.__conn.cursor()
+        if se_id:
+            res = cur.execute("SELECT se_id, dfn, fsize, cksum FROM dfns WHERE se_id = ?", (se_id,))
+        else:
+            res = cur.execute("SELECT se_id, dfn, fsize, cksum FROM dfns")
+        for row in res:
+            yield row
+        cur.close()

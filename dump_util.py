@@ -70,18 +70,6 @@ def clear_se(db, se_name):
     db.rem_pfns_by_se(se_id)
     print "Info: All done."
 
-def se_stats(db):
-    se_counts = {}
-    for se_id, pfn, fsize, cksum in db.iterpfns():
-        if se_id in se_counts:
-            se_counts[se_id] += 1
-        else:
-            se_counts[se_id] = 1
-    print "Num files on SE"
-    for se_id, count in se_counts.iteritems():
-        print "%s%s" % (Utils.se_id_to_name(se_id).ljust(20), str(count).rjust(10))
-    print ""
-
 def load_lfc(db, fname):
     lines = 1
     try:
@@ -111,14 +99,83 @@ def load_lfc(db, fname):
         raise
     print "Info: All done."
 
-def lfc_stats(db):
-    pass
-
 def load_dfc(db, fname):
-    pass
+    lines = 1
+    bad_lines = 0
+    try:
+        fd = open(fname, "r")
+        print "Info: DFC file '%s' open, processing..." % fname
+        for line in fd.readlines():
+            line = line.strip()
+            fsize, cksum, full_pfn = line.split(" ", 3)
+            try:
+                se_id, pfn = Utils.split_full_pfn(full_pfn)
+            except ValueError:
+                # User has stored a corrupt PFN in the catalog
+                # Ignore it
+                lines += 1
+                bad_lines += 1
+                continue
+            if se_id is not None:
+                db.add_dfn(se_id, pfn, fsize, cksum)
+            if not lines % 10000:
+                 print "Info: %d DFC records imported..." % lines
+            lines += 1
+        fd.close()
+        print "Info: Imported %d lines (%d contianed bad PFN)" % (lines, bad_lines)
+        print "Info: Committing Database."
+        db.commit()
+    except IOError as err:
+        print >>sys.stderr, "Error reading DFC dump: %s" % str(err)
+        print >>sys.stderr, "(%d lines read when error occured.)" % lines
+        raise
+    except ValueError as err:
+        print >>sys.stderr, "Error on line %d: %s" % (lines, str(err))
+        raise
+    except RuntimeError as err:
+        print >>sys.stderr, "Error: %s (line %s)" % (str(err), lines)
+        raise
+    print "Info: All done."
 
-def dfc_stats(db):
-    pass
+def stats(db):
+    print ""
+    # PFN
+    pfn_counts = {}
+    for se_id, pfn, fsize, cksum in db.iterpfns():
+        if se_id in se_counts:
+            pfn_counts[se_id] += 1
+        else:
+            pfn_counts[se_id] = 1
+    print "Num files on SE"
+    print "==============="
+    for se_id, count in pfn_counts.iteritems():
+        print se_id
+        print "%s%s" % (Utils.se_id_to_name(pfn_id).ljust(32), str(count).rjust(10))
+    print ""
+    # LFN 
+    lfn_counts = {}
+    for se_id, lfn, pfn in db.iterlfns():
+        if se_id in lfn_counts:
+            lfn_counts[se_id] += 1
+        else:
+            lfn_counts[se_id] = 1
+    print "Num files on LFC"
+    print "================"
+    for se_id, count in lfn_counts.iteritems():
+        print "%s%s" % (Utils.se_id_to_name(se_id).ljust(32), str(count).rjust(10))
+    print ""
+    # DFC 
+    dfn_counts = {}
+    for se_id, dfn, fsize, cksum in db.iterdfns():
+        if se_id in dfn_counts:
+            dfn_counts[se_id] += 1
+        else:
+            dfn_counts[se_id] = 1
+    print "Num files on DFC"
+    print "================"
+    for se_id, count in dfn_counts.iteritems():
+        print "%s%s" % (Utils.se_id_to_name(se_id).ljust(32), str(count).rjust(10))
+    print ""
 
 def usage(errtxt=None):
     """ Print usage information and exit. """
@@ -130,24 +187,20 @@ def usage(errtxt=None):
     print >>sys.stderr, "  Actions:"
     print >>sys.stderr, "    load_se <dump_file> <dirac_se_name> - Loads an SE dump file"
     print >>sys.stderr, "    clear_se <dirac_se_name> - Deletes all entries for an SE"
-    print >>sys.stderr, "    se_stats - Print statistics about SE data"
     print >>sys.stderr, "    load_lfc <lfc_file> - Loads an LFC dump file"
-    print >>sys.stderr, "    lfc_stats - Print stats about LFC data"
     print >>sys.stderr, "    load_dfc <dfc_file> - Loads a DFC dump file"
-    print >>sys.stderr, "    dfc_stats - Print stats about DFC data"
+    print >>sys.stderr, "    stats - Print stats about imported data"
     print >>sys.stderr, ""
     sys.exit(0)
 
 def main():
     """ Process options and run process. """
     opt_list = [
-      ('load_se',   load_se,   2),
-      ('clear_se',  clear_se,  1),
-      ('se_stats',  se_stats,  0),
-      ('load_lfc',  load_lfc,  1),
-      ('lfc_stats', lfc_stats, 0),
-      ('load_dfc',  load_dfc,  1),
-      ('dfc_stats', dfc_stats, 0),
+      ('load_se',  load_se,  2),
+      ('clear_se', clear_se, 1),
+      ('load_lfc', load_lfc, 1),
+      ('load_dfc', load_dfc, 1),
+      ('stats',    stats,    0),
     ]
     db = DB()
     if len(sys.argv) < 2:
