@@ -5,19 +5,60 @@ import sqlite3
 
 SE_ID_MAP = {
    "UKI-LT2-IC-HEP-disk" : 1,
+   "UKI-LT2-QMUL2-disk" : 2,
+   "IN2P3-CC-disk": 3,
+   "RAL-LCG2-T2K-tape": 4,
+   "UKI-NORTHGRID-LIV-HEP-disk": 5,
+   "CA-TRIUMF-T2K1-disk": 6,
+   "IFIC-LCG2-disk": 7,
+   "UKI-NORTHGRID-SHEF-HEP-disk": 8,
+   "pic-disk": 9,
+   "UKI-NORTHGRID-LANCS-HEP-disk": 10,
+   "UKI-SOUTHGRID-OX-HEP-disk": 11,
+   "JP-KEK-CRC-02-disk": 12,
+   "UKI-SOUTHGRID-RALPP-disk": 13,
 }
 
 SE_NAME_MAP = {
-    "UKI-LT2-IC-HEP-disk": "gfe02.grid.hep.ph.ic.ac.uk",
+    "gfe02.grid.hep.ph.ic.ac.uk": "UKI-LT2-IC-HEP-disk",
+    "gfe02.hep.ph.ic.ac.uk": "UKI-LT2-IC-HEP-disk",
+    "se03.esc.qmul.ac.uk": "UKI-LT2-QMUL2-disk",
+    "ccsrm02.in2p3.fr": "IN2P3-CC-disk",
+    "srm-gen.gridpp.rl.ac.uk": None,
+    "srm-t2k.gridpp.rl.ac.uk": "RAL-LCG2-T2K-tape",
+    "hepgrid11.ph.liv.ac.uk": "UKI-NORTHGRID-LIV-HEP-disk",
+    "t2ksrm.nd280.org": "CA-TRIUMF-T2K1-disk",
+    "srmv2.ific.uv.es": "IFIC-LCG2-disk",
+    "lcgse0.shef.ac.uk": "UKI-NORTHGRID-SHEF-HEP-disk",
+    "srm.pic.es": "pic-disk",
+    "fal-pygrid-30.lancs.ac.uk": "UKI-NORTHGRID-LANCS-HEP-disk",
+    "t2se01.physics.ox.ac.uk": "UKI-SOUTHGRID-OX-HEP-disk",
+    "kek2-se01.cc.kek.jp": "JP-KEK-CRC-02-disk",
+    "kek2-tmpse.cc.kek.jp": None,
+    "kek2-se.cc.kek.jp": None,
+    "se04.esc.qmul.ac.uk": None,
+    "heplnx204.pp.rl.ac.uk": "UKI-SOUTHGRID-RALPP-disk",
 }
 
 SE_BASE_MAP = {
     "UKI-LT2-IC-HEP-disk": "srm://gfe02.grid.hep.ph.ic.ac.uk:8443/srm/managerv2?SFN=/pnfs/hep.ph.ic.ac.uk/data/t2k",
+    "UKI-LT2-QMUL2-disk": "srm://se03.esc.qmul.ac.uk:8444/srm/managerv2?SFN=/t2k.org",
+    "IN2P3-CC-disk": "srm://ccsrm02.in2p3.fr:8443/srm/managerv2?SFN=/pnfs/in2p3.fr/data/t2k",
+    "RAL-LCG2-T2K-tape": "srm://srm-t2k.gridpp.rl.ac.uk:8443/srm/managerv2?SFN=/castor/ads.rl.ac.uk/prod",
+    "UKI-NORTHGRID-LIV-HEP-disk": "srm://hepgrid11.ph.liv.ac.uk:8446/srm/managerv2?SFN=/dpm/ph.liv.ac.uk/home/t2k.org",
+    "CA-TRIUMF-T2K1-disk": "srm://t2ksrm.nd280.org:8443/srm/managerv2?SFN=/nd280data", 
+    "IFIC-LCG2-disk": "srm://srmv2.ific.uv.es:8443/srm/managerv2?SFN=/lustre/ific.uv.es/grid/t2k.org",
+    "UKI-NORTHGRID-SHEF-HEP-disk": "srm://lcgse0.shef.ac.uk:8446/srm/managerv2?SFN=/dpm/shef.ac.uk/home/t2k.org",
+    "pic-disk": "srm://srm.pic.es:8443/srm/managerv2?SFN=/pnfs/pic.es/data/t2k.org",
+    "UKI-NORTHGRID-LANCS-HEP-disk": "srm://fal-pygrid-30.lancs.ac.uk:8446/srm/managerv2?SFN=/dpm/lancs.ac.uk/home/t2k.org",
+    "UKI-SOUTHGRID-OX-HEP-disk": "srm://t2se01.physics.ox.ac.uk:8446/srm/managerv2?SFN=/dpm/physics.ox.ac.uk/home/t2k.org",
+    "JP-KEK-CRC-02-disk": "srm://kek2-se01.cc.kek.jp:8444/srm/managerv2?SFN=/t2k.org",
+    "UKI-SOUTHGRID-RALPP-disk": "srm://heplnx204.pp.rl.ac.uk:8443/srm/managerv2?SFN=/pnfs/pp.rl.ac.uk/data/t2k",
 }
 
 class Utils():
 
-    PFN_REM_BASE = re.compile(r'(t2k|t2k.org|nd280)(/.*)')
+    PFN_REM_BASE = re.compile(r'(t2k|t2k.org|nd280data)(/.*)')
 
     @staticmethod
     def se_id_to_name(se_id):
@@ -25,6 +66,22 @@ class Utils():
             if se_id == se_id:
                 return se_name
         raise RuntimeError("Unknwon se_id '%d'" % se_id)
+
+    @staticmethod
+    def split_full_pfn(full_pfn):
+        proto, rest = full_pfn.split("://")
+        hostname, pfn = rest.split("/", 1)
+        if not hostname in SE_NAME_MAP:
+            raise RuntimeError("No mapping for SE '%s' (PFN: '%s')" % (hostname, full_pfn))
+        se_id = SE_NAME_MAP[hostname]
+        return se_id, "/%s" % pfn
+
+    @staticmethod
+    def norm_lfn(lfn):
+        lfn = lfn.replace('//', '/')
+        if lfn.startswith('/grid'):
+           lfn = lfn[5:]
+        return lfn
 
     @staticmethod
     def norm_pfn(pfn):
@@ -84,6 +141,20 @@ class DB():
         cur.execute("DELETE FROM pfns WHERE se_id = ?", (se_id,))
         cur.close()
         self.__conn.commit()
+
+    def add_lfn(self, se_id, lfn, pfn):
+        cur = self.__conn.cursor()
+        lfn = Utils.norm_lfn(lfn)
+        pfn = Utils.norm_pfn(pfn)
+        cur = self.__conn.cursor()
+        try:
+            cur.execute("INSERT INTO lfns VALUES (?, ?, ?)", (se_id, lfn, pfn))
+        except sqlite3.IntegrityError:
+            res = cur.execute("SELECT pfn FROM lfns WHERE se_id = ? AND lfn = ?", (se_id, lfn))
+            for old_pfn in res:
+              if old_pfn != pfn:
+                raise RuntimeError("Failed to add LFN '%s', already exists? (se_id=%d, pfn='%s')" % (lfn, se_id, pfn))
+        cur.close()
 
     def iterpfns(self, se_id=None):
         cur = self.__conn.cursor()

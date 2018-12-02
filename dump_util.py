@@ -83,17 +83,33 @@ def se_stats(db):
     print ""
 
 def load_lfc(db, fname):
-    lines = 0
+    lines = 1
     try:
         fd = open(fname, "r")
+        print "Info: Dump file '%s' open, processing..." % fname
         for line in fd.readlines():
             line = line.strip()
-            
+            lfn, full_pfn = line.split(" ")
+            se_id, pfn = Utils.split_full_pfn(full_pfn)
+            if se_id is not None: 
+                db.add_lfn(se_id, lfn, pfn)
+            if not lines % 100000:
+                 print "Info: %d LFC records imported..." % lines
+            lines += 1
         fd.close()
+        print "Info: Committing Database."
+        db.commit()
     except IOError as err:
         print >>sys.stderr, "Error reading LFC dump: %s" % str(err)
         print >>sys.stderr, "(%d lines read when error occured.)" % lines
         raise
+    except ValueError as err:
+        print >>sys.stderr, "Error on line %d: %s" % (lines, str(err))
+        raise
+    except RuntimeError as err:
+        print >>sys.stderr, "Error: %s (line %s)" % (str(err), lines)
+        raise
+    print "Info: All done."
 
 def lfc_stats(db):
     pass
