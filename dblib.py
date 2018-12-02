@@ -6,24 +6,23 @@ import sqlite3
 SE_ID_MAP = {
    "UKI-LT2-IC-HEP-disk" : 1,
    "UKI-LT2-QMUL2-disk" : 2,
-   "IN2P3-CC-disk": 3,
-   "RAL-LCG2-T2K-tape": 4,
-   "UKI-NORTHGRID-LIV-HEP-disk": 5,
-   "CA-TRIUMF-T2K1-disk": 6,
-   "IFIC-LCG2-disk": 7,
-   "UKI-NORTHGRID-SHEF-HEP-disk": 8,
-   "pic-disk": 9,
-   "UKI-NORTHGRID-LANCS-HEP-disk": 10,
-   "UKI-SOUTHGRID-OX-HEP-disk": 11,
-   "JP-KEK-CRC-02-disk": 12,
-   "UKI-SOUTHGRID-RALPP-disk": 13,
+   "RAL-LCG2-T2K-tape": 3,
+   "UKI-NORTHGRID-LIV-HEP-disk": 4,
+   "CA-TRIUMF-T2K1-disk": 5,
+   "IFIC-LCG2-disk": 6,
+   "UKI-NORTHGRID-SHEF-HEP-disk": 7,
+   "pic-disk": 8,
+   "UKI-NORTHGRID-LANCS-HEP-disk": 9,
+   "UKI-SOUTHGRID-OX-HEP-disk": 10,
+   "JP-KEK-CRC-02-disk": 11,
+   "UKI-SOUTHGRID-RALPP-disk": 12,
 }
 
 SE_NAME_MAP = {
     "gfe02.grid.hep.ph.ic.ac.uk": "UKI-LT2-IC-HEP-disk",
     "gfe02.hep.ph.ic.ac.uk": "UKI-LT2-IC-HEP-disk",
     "se03.esc.qmul.ac.uk": "UKI-LT2-QMUL2-disk",
-    "ccsrm02.in2p3.fr": "IN2P3-CC-disk",
+    "ccsrm02.in2p3.fr": None,
     "srm-gen.gridpp.rl.ac.uk": None,
     "srm-t2k.gridpp.rl.ac.uk": "RAL-LCG2-T2K-tape",
     "hepgrid11.ph.liv.ac.uk": "UKI-NORTHGRID-LIV-HEP-disk",
@@ -43,7 +42,6 @@ SE_NAME_MAP = {
 SE_BASE_MAP = {
     "UKI-LT2-IC-HEP-disk": "srm://gfe02.grid.hep.ph.ic.ac.uk:8443/srm/managerv2?SFN=/pnfs/hep.ph.ic.ac.uk/data/t2k",
     "UKI-LT2-QMUL2-disk": "srm://se03.esc.qmul.ac.uk:8444/srm/managerv2?SFN=/t2k.org",
-    "IN2P3-CC-disk": "srm://ccsrm02.in2p3.fr:8443/srm/managerv2?SFN=/pnfs/in2p3.fr/data/t2k",
     "RAL-LCG2-T2K-tape": "srm://srm-t2k.gridpp.rl.ac.uk:8443/srm/managerv2?SFN=/castor/ads.rl.ac.uk/prod",
     "UKI-NORTHGRID-LIV-HEP-disk": "srm://hepgrid11.ph.liv.ac.uk:8446/srm/managerv2?SFN=/dpm/ph.liv.ac.uk/home/t2k.org",
     "CA-TRIUMF-T2K1-disk": "srm://t2ksrm.nd280.org:8443/srm/managerv2?SFN=/nd280data", 
@@ -73,7 +71,10 @@ class Utils():
         hostname, pfn = rest.split("/", 1)
         if not hostname in SE_NAME_MAP:
             raise RuntimeError("No mapping for SE '%s' (PFN: '%s')" % (hostname, full_pfn))
-        se_id = SE_NAME_MAP[hostname]
+        se_name = SE_NAME_MAP[hostname]
+        se_id = None
+        if se_name:
+            se_id = SE_ID_MAP[se_name]
         return se_id, "/%s" % pfn
 
     @staticmethod
@@ -152,8 +153,9 @@ class DB():
         except sqlite3.IntegrityError:
             res = cur.execute("SELECT pfn FROM lfns WHERE se_id = ? AND lfn = ?", (se_id, lfn))
             for old_pfn in res:
+              old_pfn = old_pfn[0]
               if old_pfn != pfn:
-                raise RuntimeError("Failed to add LFN '%s', already exists? (se_id=%d, pfn='%s')" % (lfn, se_id, pfn))
+                raise RuntimeError("Failed to add LFN '%s', already exists? (se_id=%d, pfn='%s' != '%s')" % (lfn, se_id, pfn, old_pfn))
         cur.close()
 
     def iterpfns(self, se_id=None):
