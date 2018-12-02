@@ -229,3 +229,23 @@ class DB():
         for row in res:
             yield row
         cur.close()
+
+    def iterconflicts(self, direct=False):
+        cur = self.__conn.cursor()
+        if direct:
+          res = cur.execute("""SELECT dfns.se_id,lfn FROM dfns, lfns WHERE dfns.dfn == "/t2k.org"||lfns.pfn AND dfns.se_id = lfns.se_id""")
+        else:
+          res = cur.execute("""SELECT dfns.se_id,lfn FROM dfns, lfns WHERE dfns.dfn == "/t2k.org"||lfns.pfn""")
+        for row in res:
+            yield row
+        cur.close()
+
+    def itermoves(self, se_id, nomove=False):
+        cur = self.__conn.cursor()
+        if nomove:
+            res = cur.execute("""SELECT lfn,pfns.pfn FROM lfns INNER JOIN pfns ON lfns.lfn = pfns.pfn AND lfns.se_id = pfns.se_id AND lfns.se_id = ?""", (se_id, ))
+        else:
+            res = cur.execute("""SELECT lfn,pfns.pfn FROM lfns INNER JOIN pfns ON lfns.lfn = "/t2k.org"||pfns.pfn AND lfns.se_id = pfns.se_id AND lfns.se_id = ?""", (se_id, ))
+        for row in res:
+            yield row
+        cur.close()

@@ -176,6 +176,67 @@ def stats(db):
         print "%s%s" % (Utils.se_id_to_name(se_id).ljust(32), str(count).rjust(10))
     print ""
 
+def conflicts(db, fname="conflicts_%s.txt"):
+    print "Generating list of LFC/DFC conflicts..."
+    direct = True
+    dir_counts = {}
+    indir_counts = {}
+    for i in ('direct', 'indirect',):
+        print "Writing %s conflicts LFNs to '%s'..." % (i, fname % i)
+        fd = open(fname % i, "w")
+        if direct:
+            se_counts = dir_counts
+        else:
+            se_counts = indir_counts
+        for se_id, lfn in db.iterconflicts(direct=direct):
+            fd.write("%s\n" % lfn)
+            if se_id in se_counts:
+                se_counts[se_id] += 1
+            else:
+                se_counts[se_id] = 1
+        fd.close()
+        print "Completed %s." % i
+        direct = False
+    print ""
+    print "Direct Conflicts by SE"
+    print "======================"
+    for se_id, count in dir_counts.iteritems():
+        print "%s%s" % (Utils.se_id_to_name(se_id).ljust(32), str(count).rjust(10))
+    print ""
+    print "Indirect Conflicts by SE"
+    print "========================"
+    for se_id, count in indir_counts.iteritems():
+        print "%s%s" % (Utils.se_id_to_name(se_id).ljust(32), str(count).rjust(10))
+
+def movelists(db, se_name):
+    if not se_name in SE_ID_MAP:
+        print >>sys.stderr, "Error: Unknown DIRAC SE name '%s'." % se_name
+        return
+    se_id = SE_ID_MAP[se_name]
+    # Counters
+    normal_move = 0
+    special_move = 0
+    no_move = 0
+    print "Generating move lists for %s (%d)..." % (se_name, se_id)
+    # TODO: Write move list files
+    for lfn, pfn in db.itermoves(se_id):
+        if lfn == "/t2k.org%s" % pfn:
+            normal_move += 1
+        else:
+            special_move += 1
+    print "Summarising unmoved files..."
+    for lfn, pfn in db.itermoves(se_id, nomove=True):
+        no_move += 1
+    print "Complete."
+    print ""
+    print "Summary"
+    print "======="
+    print "Files to move: %d" % normal_move
+    print "Files to rename (special): %d" % special_move
+    print "Files without move: %d" % no_move
+    print "Total: %d" % (normal_move + special_move + no_move)
+    print ""
+
 def usage(errtxt=None):
     """ Print usage information and exit. """
     if errtxt:
@@ -183,23 +244,29 @@ def usage(errtxt=None):
         print >>sys.stderr, ""
     print >>sys.stderr, "se_dump: Handle SE dump files & data"
     print >>sys.stderr, "  Usage: se_dump.py <action> <action_opts>"
-    print >>sys.stderr, "  Actions:"
+    print >>sys.stderr, "  Import Actions:"
     print >>sys.stderr, "    load_se <dump_file> <dirac_se_name> - Loads an SE dump file"
     print >>sys.stderr, "    clear_se <dirac_se_name> - Deletes all entries for an SE"
     print >>sys.stderr, "    load_lfc <lfc_file> - Loads an LFC dump file"
     print >>sys.stderr, "    load_dfc <dfc_file> - Loads a DFC dump file"
     print >>sys.stderr, "    stats - Print stats about imported data"
     print >>sys.stderr, ""
+    print >>sys.stderr, " Processing Actions:"
+    print >>sys.stderr, "    conflicts - Generate a list of DFC/LFC conflicts"
+    print >>sys.stderr, "    movelists <dirac_se_name> - Generate move files for an SE"
+    #print >>sys.stderr, "    register <dirac_se_name> - Generate registration lists for an SE"
     sys.exit(0)
 
 def main():
     """ Process options and run process. """
     opt_list = [
-      ('load_se',  load_se,  2),
-      ('clear_se', clear_se, 1),
-      ('load_lfc', load_lfc, 1),
-      ('load_dfc', load_dfc, 1),
-      ('stats',    stats,    0),
+      ('load_se',   load_se,   2),
+      ('clear_se',  clear_se,  1),
+      ('load_lfc',  load_lfc,  1),
+      ('load_dfc',  load_dfc,  1),
+      ('stats',     stats,     0),
+      ('conflicts', conflicts, 0),
+      ('movelists', movelists, 1),
     ]
     db = DB()
     if len(sys.argv) < 2:
