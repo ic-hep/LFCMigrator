@@ -95,8 +95,14 @@ class Utils():
         pfn = pfn.replace('//', '/')
         pfn_match = Utils.PFN_REM_BASE.search(pfn)
         if not pfn_match:
-            raise RuntimeError("Unable to process PFN '%s'?" % pfn)
-        res = pfn_match.group(2)
+            # Some PFNs don't contain any base path (due to a bug in some tool?)
+            #raise RuntimeError("Unable to process PFN '%s'?" % pfn)
+            # Return just the pfn
+            res = pfn
+            if '/' not in pfn:
+                res = "/%s" % pfn
+        else:
+            res = pfn_match.group(2)
         if se_id == SE_ID_MAP['RAL-LCG2-T2K-tape']:
             # RAL is special, the base path doesn't include t2k.org
             # We have to add that bit back to our PFN path
