@@ -16,6 +16,8 @@ SE_ID_MAP = {
    "UKI-SOUTHGRID-OX-HEP-disk": 10,
    "JP-KEK-CRC-02-disk": 11,
    "UKI-SOUTHGRID-RALPP-disk": 12,
+   "UNIBE-LHEP-disk": 13,
+   "UKI-NORTHGRID-MAN-HEP-disk": 14,
 }
 
 SE_NAME_MAP = {
@@ -37,6 +39,9 @@ SE_NAME_MAP = {
     "kek2-se.cc.kek.jp": None,
     "se04.esc.qmul.ac.uk": None,
     "heplnx204.pp.rl.ac.uk": "UKI-SOUTHGRID-RALPP-disk",
+    "dpm.lhep.unibe.ch": "UNIBE-LHEP-disk",
+    "srmcms.pic.es": None,
+    "bohr3226.tier2.hep.manchester.ac.uk": "UKI-NORTHGRID-MAN-HEP-disk",
 }
 
 SE_BASE_MAP = {
@@ -52,6 +57,8 @@ SE_BASE_MAP = {
     "UKI-SOUTHGRID-OX-HEP-disk": "srm://t2se01.physics.ox.ac.uk:8446/srm/managerv2?SFN=/dpm/physics.ox.ac.uk/home/t2k.org",
     "JP-KEK-CRC-02-disk": "srm://kek2-se01.cc.kek.jp:8444/srm/managerv2?SFN=/t2k.org",
     "UKI-SOUTHGRID-RALPP-disk": "srm://heplnx204.pp.rl.ac.uk:8443/srm/managerv2?SFN=/pnfs/pp.rl.ac.uk/data/t2k",
+    "UNIBE-LHEP-disk": "srm://dpm.lhep.unibe.ch:8446/srm/managerv2?SFN=/dpm/lhep.unibe.ch/home/t2k.org",
+    "UKI-NORTHGRID-MAN-HEP-disk": "srm://bohr3226.tier2.hep.manchester.ac.uk:8446/srm/managerv2?SFN=/dpm/tier2.hep.manchester.ac.uk/home/t2k.org",
 }
 
 class Utils():

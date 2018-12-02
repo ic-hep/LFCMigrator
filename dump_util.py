@@ -142,15 +142,14 @@ def stats(db):
     # PFN
     pfn_counts = {}
     for se_id, pfn, fsize, cksum in db.iterpfns():
-        if se_id in se_counts:
+        if se_id in pfn_counts:
             pfn_counts[se_id] += 1
         else:
             pfn_counts[se_id] = 1
     print "Num files on SE"
     print "==============="
     for se_id, count in pfn_counts.iteritems():
-        print se_id
-        print "%s%s" % (Utils.se_id_to_name(pfn_id).ljust(32), str(count).rjust(10))
+        print "%s%s" % (Utils.se_id_to_name(se_id).ljust(32), str(count).rjust(10))
     print ""
     # LFN 
     lfn_counts = {}
