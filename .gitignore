@@ -1,3 +1,6 @@
 data
 *.pyc
 *.db
+*.txt
+*.gz
+*.bz2
