@@ -188,12 +188,12 @@ def conflicts(db, fname="conflicts_%s.txt"):
             se_counts = dir_counts
         else:
             se_counts = indir_counts
-        for se_id, lfn in db.iterconflicts(direct=direct):
-            fd.write("%s\n" % lfn)
-            if se_id in se_counts:
-                se_counts[se_id] += 1
+        for dfc_se_id,lfc_se_id, lfn in db.iterconflicts(direct=direct):
+            fd.write("%s %s %s\n" % (lfn, Utils.se_id_to_name(dfc_se_id), Utils.se_id_to_name(lfc_se_id)))
+            if dfc_se_id in se_counts:
+                se_counts[dfc_se_id] += 1
             else:
-                se_counts[se_id] = 1
+                se_counts[dfc_se_id] = 1
         fd.close()
         print "Completed %s." % i
         direct = False
@@ -237,13 +237,30 @@ def movelists(db, se_name):
     print "Total: %d" % (normal_move + special_move + no_move)
     print ""
 
+def darkdata(db, se_name):
+    if not se_name in SE_ID_MAP:
+        print >>sys.stderr, "Error: Unknown DIRAC SE name '%s'." % se_name
+        return
+    se_id = SE_ID_MAP[se_name]
+    print "Generating dark data list for %s..." % se_name
+    fname = "%s_dark.txt" % se_name
+    print "Info: Output file is '%s'." % fname
+    fd = open(fname, "w")
+    pfn_count = 0
+    for pfn in db.iterdarkdata(se_id):
+        fd.write("%s\n" % pfn)
+        pfn_count += 1
+    fd.close()
+    print "Info: %d dark files found." % pfn_count
+    print "All done."
+
 def usage(errtxt=None):
     """ Print usage information and exit. """
     if errtxt:
         print >>sys.stderr, "Error: %s" % errtxt
         print >>sys.stderr, ""
-    print >>sys.stderr, "se_dump: Handle SE dump files & data"
-    print >>sys.stderr, "  Usage: se_dump.py <action> <action_opts>"
+    print >>sys.stderr, "dump_util: Do stuff with LFC, DFC & SE data"
+    print >>sys.stderr, "  Usage: dump_util.py <action> <action_opts>"
     print >>sys.stderr, "  Import Actions:"
     print >>sys.stderr, "    load_se <dump_file> <dirac_se_name> - Loads an SE dump file"
     print >>sys.stderr, "    clear_se <dirac_se_name> - Deletes all entries for an SE"
@@ -254,6 +271,7 @@ def usage(errtxt=None):
     print >>sys.stderr, " Processing Actions:"
     print >>sys.stderr, "    conflicts - Generate a list of DFC/LFC conflicts"
     print >>sys.stderr, "    movelists <dirac_se_name> - Generate move files for an SE"
+    print >>sys.stderr, "    darkdata <dirac_se_name> - Generate a dark file list for an SE"
     #print >>sys.stderr, "    register <dirac_se_name> - Generate registration lists for an SE"
     sys.exit(0)
 
@@ -267,6 +285,7 @@ def main():
       ('stats',     stats,     0),
       ('conflicts', conflicts, 0),
       ('movelists', movelists, 1),
+      ('darkdata',  darkdata,  1),
     ]
     db = DB()
     if len(sys.argv) < 2:

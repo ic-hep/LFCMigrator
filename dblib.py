@@ -233,9 +233,9 @@ class DB():
     def iterconflicts(self, direct=False):
         cur = self.__conn.cursor()
         if direct:
-          res = cur.execute("""SELECT dfns.se_id,lfn FROM dfns, lfns WHERE dfns.dfn == "/t2k.org"||lfns.pfn AND dfns.se_id = lfns.se_id""")
+          res = cur.execute("""SELECT dfns.se_id,lfns.se_id,lfn FROM dfns, lfns WHERE dfns.dfn == "/t2k.org"||lfns.pfn AND dfns.se_id = lfns.se_id""")
         else:
-          res = cur.execute("""SELECT dfns.se_id,lfn FROM dfns, lfns WHERE dfns.dfn == "/t2k.org"||lfns.pfn""")
+          res = cur.execute("""SELECT dfns.se_id,lfns.se_id,lfn FROM dfns, lfns WHERE dfns.dfn == "/t2k.org"||lfns.pfn""")
         for row in res:
             yield row
         cur.close()
@@ -246,6 +246,13 @@ class DB():
             res = cur.execute("""SELECT lfn,pfns.pfn FROM lfns INNER JOIN pfns ON lfns.lfn = pfns.pfn AND lfns.se_id = pfns.se_id AND lfns.se_id = ?""", (se_id, ))
         else:
             res = cur.execute("""SELECT lfn,pfns.pfn FROM lfns INNER JOIN pfns ON lfns.lfn = "/t2k.org"||pfns.pfn AND lfns.se_id = pfns.se_id AND lfns.se_id = ?""", (se_id, ))
+        for row in res:
+            yield row
+        cur.close()
+
+    def iterdarkdata(self, se_id):
+        cur = self.__conn.cursor()
+        res = cur.execute("""SELECT pfn FROM pfns WHERE pfns.pfn NOT IN (SELECT dfn FROM dfns WHERE se_id=?) AND pfns.pfn NOT IN (SELECT pfn FROM lfns WHERE se_id=?) AND se_id=?""", (se_id, se_id, se_id,))
         for row in res:
             yield row
         cur.close()
