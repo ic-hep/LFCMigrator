@@ -254,6 +254,29 @@ def darkdata(db, se_name):
     print "Info: %d dark files found." % pfn_count
     print "All done."
 
+def badrepl(db):
+    print "Finding bad LFC replicas..."
+    fname_bad = "bad_repls.txt"
+    fname_missing = "missing_repls.txt"
+    num_bad = 0
+    num_missing = 0
+    print "INFO: Writing bad LFNs to '%s'..." % fname_bad
+    print "INFO: Writing missing LFNs to '%s'..." % fname_missing
+    fd_bad = open(fname_bad, "w")
+    fd_missing = open(fname_missing, "w")
+    for pfn, num_sizes, num_cksums in db.iterrepl():
+        if num_sizes > 1 or num_cksums > 1:
+            num_bad += 1
+            fd_bad.write("%s\n" % pfn)
+        if num_sizes < 1 or num_cksums < 1:
+            num_missing += 1
+            fd_missing.write("%s\n" % pfn)
+    fd_bad.close()
+    fd_missing.close()
+    print "INFO: Found %d bad replicas." % num_bad
+    print "INFO: Found %d missing replicas." % num_missing
+    print "All done."
+
 def usage(errtxt=None):
     """ Print usage information and exit. """
     if errtxt:
@@ -272,6 +295,7 @@ def usage(errtxt=None):
     print >>sys.stderr, "    conflicts - Generate a list of DFC/LFC conflicts"
     print >>sys.stderr, "    movelists <dirac_se_name> - Generate move files for an SE"
     print >>sys.stderr, "    darkdata <dirac_se_name> - Generate a dark file list for an SE"
+    print >>sys.stderr, "    badrepl - Finds bad and missing LFC replicas"
     #print >>sys.stderr, "    register <dirac_se_name> - Generate registration lists for an SE"
     sys.exit(0)
 
@@ -286,6 +310,7 @@ def main():
       ('conflicts', conflicts, 0),
       ('movelists', movelists, 1),
       ('darkdata',  darkdata,  1),
+      ('badrepl',   badrepl,   0),
     ]
     db = DB()
     if len(sys.argv) < 2:

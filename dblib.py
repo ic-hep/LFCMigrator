@@ -256,3 +256,10 @@ class DB():
         for row in res:
             yield row
         cur.close()
+
+    def iterrepl(self):
+        cur = self.__conn.cursor()
+        res = cur.execute("""SELECT lfns.pfn,COUNT(DISTINCT fsize),COUNT(DISTINCT cksum) FROM lfns OUTER LEFT JOIN pfns ON lfns.pfn = pfns.pfn GROUP BY lfns.pfn""")
+        for row in res:
+            yield row
+        cur.close()
