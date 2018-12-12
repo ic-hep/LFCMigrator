@@ -243,9 +243,9 @@ class DB():
     def itermoves(self, se_id, nomove=False):
         cur = self.__conn.cursor()
         if nomove:
-            res = cur.execute("""SELECT lfn,pfns.pfn FROM lfns INNER JOIN pfns ON lfns.lfn = pfns.pfn AND lfns.se_id = pfns.se_id AND lfns.se_id = ?""", (se_id, ))
+            res = cur.execute("""SELECT lfn,pfns.pfn FROM lfns INNER JOIN pfns ON lfns.pfn = "/t2k.org"||pfns.pfn AND lfns.se_id = pfns.se_id WHERE lfns.se_id = ?""", (se_id, ))
         else:
-            res = cur.execute("""SELECT lfn,pfns.pfn FROM lfns INNER JOIN pfns ON lfns.lfn = "/t2k.org"||pfns.pfn AND lfns.se_id = pfns.se_id AND lfns.se_id = ?""", (se_id, ))
+            res = cur.execute("""SELECT lfn,pfns.pfn FROM lfns INNER JOIN pfns ON lfns.pfn = pfns.pfn AND lfns.se_id = pfns.se_id WHERE lfns.se_id = ?""", (se_id, ))
         for row in res:
             yield row
         cur.close()
