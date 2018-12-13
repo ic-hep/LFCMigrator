@@ -257,7 +257,7 @@ class DB():
 
     def iterdarkdata(self, se_id):
         cur = self.__conn.cursor()
-        res = cur.execute("""SELECT pfn FROM pfns WHERE pfns.pfn NOT IN (SELECT dfn FROM dfns WHERE se_id=?) AND pfns.pfn NOT IN (SELECT pfn FROM lfns WHERE se_id=?) AND se_id=?""", (se_id, se_id, se_id,))
+        res = cur.execute("""SELECT pfn FROM pfns WHERE se_id = ? AND pfns.pfn NOT IN (SELECT dfn FROM dfns WHERE se_id = ? UNION SELECT pfn FROM lfns WHERE se_id = ?)""", (se_id, se_id, se_id,))
         for row in res:
             yield row
         cur.close()
