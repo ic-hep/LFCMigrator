@@ -91,6 +91,11 @@ class Utils():
         return se_id, "/%s" % pfn
 
     @staticmethod
+    def lfn_to_pfn(lfn, se_name):
+        """ Convert an LFN to a DIRAC compatible PFN at site se_id. """
+        return SE_BASE_MAP[se_name] + lfn
+
+    @staticmethod
     def norm_lfn(lfn):
         lfn = lfn.replace('//', '/')
         if lfn.startswith('/grid'):
@@ -263,3 +268,11 @@ class DB():
         for row in res:
             yield row
         cur.close()
+
+    def iterregister(self, se_id):
+        cur = self.__conn.cursor()
+        res = cur.execute("""SELECT lfn,fsize,cksum FROM lfns INNER JOIN pfns ON lfns.pfn = pfns.pfn AND lfns.se_id = pfns.se_id WHERE lfns.se_id = ?""", (se_id, ))
+        for row in res:
+            yield row
+        cur.close()
+        

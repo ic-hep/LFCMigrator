@@ -277,6 +277,24 @@ def badrepl(db):
     print "INFO: Found %d missing replicas." % num_missing
     print "All done."
 
+def register(db, se_name):
+    if not se_name in SE_ID_MAP:
+        print >>sys.stderr, "Error: Unknown DIRAC SE name '%s'." % se_name
+        return
+    se_id = SE_ID_MAP[se_name]
+    fname = "register_%s.txt" %se_name
+    print "INFO: Writing registration file for SE %s to '%s'..." % (se_name, fname)
+    num = 0
+    fd = open(fname, "w")
+    for lfn, fsize,cksum in db.iterregister(se_id):
+        pfn = Utils.lfn_to_pfn(lfn, se_name)
+        fd.write("%s %s %s %s\n" %(lfn, pfn, fsize, cksum))
+        num += 1
+        if num % 10000 == 0:
+            print "INFO: Processed %d files..." % num
+    fd.close()
+    print "All done (%d lines written)." % num
+    
 def usage(errtxt=None):
     """ Print usage information and exit. """
     if errtxt:
@@ -296,7 +314,7 @@ def usage(errtxt=None):
     print >>sys.stderr, "    movelists <dirac_se_name> - Generate move files for an SE"
     print >>sys.stderr, "    darkdata <dirac_se_name> - Generate a dark file list for an SE"
     print >>sys.stderr, "    badrepl - Finds bad and missing LFC replicas"
-    #print >>sys.stderr, "    register <dirac_se_name> - Generate registration lists for an SE"
+    print >>sys.stderr, "    register <dirac_se_name> - Generate registration lists for an SE"
     sys.exit(0)
 
 def main():
@@ -311,6 +329,7 @@ def main():
       ('movelists', movelists, 1),
       ('darkdata',  darkdata,  1),
       ('badrepl',   badrepl,   0),
+        ('register', register, 1),
     ]
     db = DB()
     if len(sys.argv) < 2:
