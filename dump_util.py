@@ -214,27 +214,32 @@ def movelists(db, se_name):
         return
     se_id = SE_ID_MAP[se_name]
     # Counters
+    total = 0
     normal_move = 0
     special_move = 0
-    no_move = 0
+    #no_move = 0
     print "Generating move lists for %s (%d)..." % (se_name, se_id)
     # TODO: Write move list files
     for lfn, pfn in db.itermoves(se_id):
+        total += 1
+        if total % 100000 == 0:
+            print "Processed %d items..." % total
         if lfn == "/t2k.org%s" % pfn:
             normal_move += 1
         else:
             special_move += 1
-    print "Summarising unmoved files..."
-    for lfn, pfn in db.itermoves(se_id, nomove=True):
-        no_move += 1
+    #print "Summarising unmoved files..."
+    #for lfn, pfn in db.itermoves(se_id, nomove=True):
+    #    no_move += 1
     print "Complete."
     print ""
     print "Summary"
     print "======="
     print "Files to move: %d" % normal_move
     print "Files to rename (special): %d" % special_move
-    print "Files without move: %d" % no_move
-    print "Total: %d" % (normal_move + special_move + no_move)
+    #print "Files without move: %d" % no_move
+    #print "Total: %d" % (normal_move + special_move + no_move)
+    print "Total: %d" % (normal_move + special_move)
     print ""
 
 def darkdata(db, se_name):
