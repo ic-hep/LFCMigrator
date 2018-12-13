@@ -217,29 +217,39 @@ def movelists(db, se_name):
     total = 0
     normal_move = 0
     special_move = 0
-    #no_move = 0
+    no_move = 0
     print "Generating move lists for %s (%d)..." % (se_name, se_id)
-    # TODO: Write move list files
+    fname_normal = "%s_move.txt" % se_name
+    fname_special = "%s_smove.txt" % se_name
+    fname_nomove = "%s_nomove.txt" % se_name
+    print "INFO: Creating output files '%s', '%s' and '%s'..." % (fname_normal, fname_special, fname_nomove)
+    fd_normal = open(fname_normal, "w")
+    fd_special = open(fname_special, "w")
+    fd_nomove = open(fname_nomove, "w")
     for lfn, pfn in db.itermoves(se_id):
         total += 1
         if total % 100000 == 0:
             print "Processed %d items..." % total
-        if lfn == "/t2k.org%s" % pfn:
+        if lfn == "/t2k.org" + pfn:
             normal_move += 1
+            fd_normal.write("%s %s\n" % (pfn, lfn))
+        elif lfn == pfn:
+            no_move += 1
+            fd_nomove.write("%s %s\n" % (pfn, lfn))
         else:
             special_move += 1
-    #print "Summarising unmoved files..."
-    #for lfn, pfn in db.itermoves(se_id, nomove=True):
-    #    no_move += 1
+            fd_special.write("%s %s\n" % (pfn, lfn))
+    fd_normal.close()
+    fd_special.close()
+    fd_nomove.close()
     print "Complete."
     print ""
     print "Summary"
     print "======="
     print "Files to move: %d" % normal_move
     print "Files to rename (special): %d" % special_move
-    #print "Files without move: %d" % no_move
-    #print "Total: %d" % (normal_move + special_move + no_move)
-    print "Total: %d" % (normal_move + special_move)
+    print "Files without move: %d" % no_move
+    print "Total: %d" % (normal_move + special_move + no_move)
     print ""
 
 def darkdata(db, se_name):
@@ -257,6 +267,23 @@ def darkdata(db, se_name):
         pfn_count += 1
     fd.close()
     print "Info: %d dark files found." % pfn_count
+    print "All done."
+
+def missing(db, se_name):
+    if not se_name in SE_ID_MAP:
+        print >>sys.stderr, "Error: Unknown DIRAC SE name '%s'." % se_name
+        return
+    se_id = SE_ID_MAP[se_name]
+    print "Generating missing data list for %s..." % se_name
+    fname = "%s_missing.txt" % se_name
+    print "Info: Output file is '%s'." % fname
+    fd = open(fname, "w")
+    pfn_count = 0
+    for pfn in db.itermissing(se_id):
+        fd.write("%s\n" % pfn)
+        pfn_count += 1
+    fd.close()
+    print "Info: %d missing files found." % pfn_count
     print "All done."
 
 def badrepl(db):
@@ -318,6 +345,7 @@ def usage(errtxt=None):
     print >>sys.stderr, "    conflicts - Generate a list of DFC/LFC conflicts"
     print >>sys.stderr, "    movelists <dirac_se_name> - Generate move files for an SE"
     print >>sys.stderr, "    darkdata <dirac_se_name> - Generate a dark file list for an SE"
+    print >>sys.stderr, "    missing <dirac_se_name> - List missing LFC replicas for an SE"
     print >>sys.stderr, "    badrepl - Finds bad and missing LFC replicas"
     print >>sys.stderr, "    register <dirac_se_name> - Generate registration lists for an SE"
     sys.exit(0)
@@ -333,8 +361,9 @@ def main():
       ('conflicts', conflicts, 0),
       ('movelists', movelists, 1),
       ('darkdata',  darkdata,  1),
+      ('missing',   missing,   1),
       ('badrepl',   badrepl,   0),
-        ('register', register, 1),
+      ('register',  register,  1),
     ]
     db = DB()
     if len(sys.argv) < 2:

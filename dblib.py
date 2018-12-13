@@ -140,6 +140,7 @@ class DB():
         self.__conn = sqlite3.connect(dbfile)
         cur = self.__conn.cursor()
         cur.execute("CREATE TABLE IF NOT EXISTS lfns (se_id INTEGER, lfn TEXT, pfn TEXT, PRIMARY KEY (se_id, lfn))")
+        cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS lfc_pfns ON lfns (se_id, pfn)")
         cur.execute("CREATE TABLE IF NOT EXISTS pfns (se_id INTEGER, pfn TEXT, fsize INTEGER, cksum TEXT, PRIMARY KEY (se_id, pfn))")
         cur.execute("CREATE TABLE IF NOT EXISTS dfns (se_id INTEGER, dfn TEXT, fsize INTEGER, cksum TEXT, PRIMARY KEY (se_id, dfn))")
         self.__conn.commit()
@@ -245,12 +246,9 @@ class DB():
             yield row
         cur.close()
 
-    def itermoves(self, se_id, nomove=False):
+    def itermoves(self, se_id):
         cur = self.__conn.cursor()
-        if nomove:
-            res = cur.execute("""SELECT lfn,pfns.pfn FROM lfns INNER JOIN pfns ON lfns.pfn = "/t2k.org"||pfns.pfn AND lfns.se_id = pfns.se_id WHERE lfns.se_id = ?""", (se_id, ))
-        else:
-            res = cur.execute("""SELECT lfn,pfns.pfn FROM lfns INNER JOIN pfns ON lfns.pfn = pfns.pfn AND lfns.se_id = pfns.se_id WHERE lfns.se_id = ?""", (se_id, ))
+        res = cur.execute("""SELECT lfn,pfns.pfn FROM lfns INNER JOIN pfns ON lfns.pfn = pfns.pfn AND lfns.se_id = pfns.se_id WHERE lfns.se_id = ?""", (se_id, ))
         for row in res:
             yield row
         cur.close()
@@ -258,6 +256,13 @@ class DB():
     def iterdarkdata(self, se_id):
         cur = self.__conn.cursor()
         res = cur.execute("""SELECT pfn FROM pfns WHERE se_id = ? AND pfns.pfn NOT IN (SELECT dfn FROM dfns WHERE se_id = ? UNION SELECT pfn FROM lfns WHERE se_id = ?)""", (se_id, se_id, se_id,))
+        for row in res:
+            yield row
+        cur.close()
+
+    def itermissing(self, se_id):
+        cur = self.__conn.cursor()
+        res = cur.execute("""SELECT lfn FROM lfns WHERE se_id = ? AND lfns.pfn NOT IN (SELECT pfn FROM pfns WHERE se_id = ?)""", (se_id, se_id,))
         for row in res:
             yield row
         cur.close()
