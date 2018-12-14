@@ -374,7 +374,10 @@ def main():
            usage("Wrong number of arguments for function.")
         fcn_ptr(db, *sys.argv[2:])
         return
-    usage("Unknown function '%s'.")
+    if sys.argv[1] in ("-h", "--help", "help"):
+        usage()
+    else:
+        usage("Unknown function '%s'." % sys.argv[1])
 
 if __name__ == '__main__':
     main()
