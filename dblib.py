@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
 import re
+import os
 import sqlite3
+
+DB_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data.db")
 
 SE_ID_MAP = {
    "UKI-LT2-IC-HEP-disk" : 1,
@@ -135,7 +138,7 @@ class Utils():
 class DB():
     """ All DB Entries. """
 
-    def __init__(self, dbfile="data.db"):
+    def __init__(self, dbfile=DB_PATH):
         """ Open DB and create tables if needed. """
         self.__conn = sqlite3.connect(dbfile)
         cur = self.__conn.cursor()
