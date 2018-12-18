@@ -279,7 +279,7 @@ class DB():
 
     def iterregister(self, se_id):
         cur = self.__conn.cursor()
-        res = cur.execute("""SELECT lfn,fsize,cksum FROM lfns INNER JOIN pfns ON lfns.pfn = pfns.pfn WHERE pfns.se_id = ?""", (se_id, ))
+        res = cur.execute("""SELECT DISTINCT lfn,fsize,cksum FROM lfns INNER JOIN pfns ON lfns.pfn = pfns.pfn WHERE pfns.se_id = ?""", (se_id, ))
         for row in res:
             yield row
         cur.close()
